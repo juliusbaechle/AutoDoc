@@ -7,7 +7,7 @@ using System.Diagnostics;
 [TestClass]
 public class Tests {
   [TestMethod]
-  public void CreateComments() {
+  public void CreateComment() {
     MethodComment comment = new MethodComment();
     comment.Whitespace = 2;
     comment.Signature = "Routine::getVariable [virtual]";
@@ -53,46 +53,47 @@ public class Tests {
 
     Token token;
     do {
-      token = new Token(scanner.getToken(), scanner.Text);
+      string text = scanner.getToken();
+      token = new Token(text, scanner.TokenType);
       tokens.Add(token);
-    } while (token.Type != (int)EToken.END_OF_SCAN);
+    } while (token.Type != EToken.END_OF_SCAN);
 
 
     List<Token> exspectedTokens = new List<Token>() {
-      new Token(EToken.KEYWORD_CLASS, "class"),
-      new Token(EToken.IDENTIFIER, "Menu" ),
-      new Token(EToken.QUALIFIER),
-      new Token(EToken.IDENTIFIER, "dgPage"),
-      new Token('{'),
-      new Token('}'),
+      new Token("class", EToken.KEYWORD_CLASS),
+      new Token("Menu", EToken.IDENTIFIER),
+      new Token("::"),
+      new Token("dgPage", EToken.IDENTIFIER),
+      new Token("{"),
+      new Token("}"),
 
-      new Token(EToken.KEYWORD_ACCESS, "public"),
-      new Token(':'),
+      new Token("public", EToken.KEYWORD_ACCESS),
+      new Token(":"),
 
-      new Token(EToken.KEYWORD_CV, "const"),
-      new Token(EToken.IDENTIFIER, "QMap"),
-      new Token('<'),
-      new Token(EToken.IDENTIFIER, "QString"),
-      new Token(','),
-      new Token(EToken.IDENTIFIER, "QVariant"),
-      new Token('>'),
-      new Token('&'),
-      new Token(EToken.IDENTIFIER, "func"),
-      new Token('('),
-      new Token(')'),
-      new Token(';'),
+      new Token("const", EToken.KEYWORD_CV),
+      new Token("QMap", EToken.IDENTIFIER),
+      new Token("<"),
+      new Token("QString", EToken.IDENTIFIER),
+      new Token(","),
+      new Token("QVariant", EToken.IDENTIFIER),
+      new Token(">"),
+      new Token("&"),
+      new Token("func", EToken.IDENTIFIER),
+      new Token("("),
+      new Token(")"),
+      new Token(";"),
 
-      new Token(EToken.STRING_LITERAL, "Hello \"World\""),
-      new Token(EToken.REAL_LITERAL, "10.25e-2"),
-      new Token(EToken.CHAR_LITERAL, "'"),
+      new Token("Hello \"World\"", EToken.STRING_LITERAL),
+      new Token("10.25e-2", EToken.REAL_LITERAL),
+      new Token("'", EToken.CHAR_LITERAL),
 
       new Token(EToken.END_OF_SCAN)
     };
 
     Assert.AreEqual(tokens.Count, exspectedTokens.Count);
     for (int i = 0; i < tokens.Count; i++) {
-      Assert.AreEqual(tokens[i].Type, exspectedTokens[i].Type);
-      Assert.AreEqual(tokens[i].Text, exspectedTokens[i].Text);
+      Assert.AreEqual(exspectedTokens[i].Type, tokens[i].Type);
+      Assert.AreEqual(exspectedTokens[i].Text, tokens[i].Text);
     }
   }
 

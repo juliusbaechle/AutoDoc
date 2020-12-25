@@ -26,7 +26,7 @@ namespace AutoDoc {
         // TODO: Parse .h Function Declaration
         // TODO: Merge method declarations
 
-        VsShellUtilities.OpenDocument(ServiceProvider.GlobalProvider, "TestApp.h");        
+        // VsShellUtilities.OpenDocument(ServiceProvider.GlobalProvider, "TestApp.h");        
 
         // Parse old comment, merge method and create new comment
         // TODO: Include default values

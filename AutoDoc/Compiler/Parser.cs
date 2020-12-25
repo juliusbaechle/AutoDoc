@@ -19,7 +19,7 @@ namespace AutoDoc.Compiler {
 
       // Konstruktoren oder Operator-Umwandlungen haben keinen return type
       // In diesem Fall wird der Bezeichner als ReturnType-Bezeichner eingelesen
-      if (m_token == '(') {
+      if (m_text == "(") {
         method.QualifiedName = method.ReturnType.Name;
         method.ReturnType = new Type();
       } else {
@@ -27,12 +27,12 @@ namespace AutoDoc.Compiler {
       }
 
       // Parameter
-      assert('('); next();
+      assert("("); next();
       method.Params = parseParamList();
-      assert(')'); next();
+      assert(")"); next();
 
       // const / noexcept / ...
-      if(m_token == (int)EToken.KEYWORD_CV)
+      if(m_token == EToken.KEYWORD_CV)
         method.Specifiers.Add(parseCV());
 
       return method;
@@ -40,7 +40,7 @@ namespace AutoDoc.Compiler {
 
     private List<string> parseSpecifier() {
       var specifiers = new List<string>();
-      while(m_token == (int)EToken.KEYWORD_SPECIFIER) {
+      while(m_token == EToken.KEYWORD_SPECIFIER) {
         specifiers.Add(m_text);
         next();
       }
@@ -58,11 +58,11 @@ namespace AutoDoc.Compiler {
 
     // ptr_spec -> (("*"|"&"|"&&") ["const"|"virtual"]) | EMPTY
     private PtrSpec parsePointerSpec() {
-      if (m_token != '*' && m_token != '&' && m_token != (int)EToken.RVALUE_REF)
+      if (m_text != "*" && m_text != "&" && m_text != "&&")
         return new PtrSpec();
       
       var ptrSpec = new PtrSpec();
-      ptrSpec.PtrOrRef = (m_token == (int)EToken.RVALUE_REF) ? "&&" : ((char)m_token).ToString();
+      ptrSpec.PtrOrRef = m_text;
       next();
       ptrSpec.KeywordCV = parseCV();
       ptrSpec.RecPtrSpec = parsePointerSpec();
@@ -70,7 +70,7 @@ namespace AutoDoc.Compiler {
     }
 
     private string parseCV() {
-      if (m_token == (int)EToken.KEYWORD_CV) {
+      if (m_token == EToken.KEYWORD_CV) {
         string cv = m_text;
         next();
         return cv;
@@ -80,12 +80,12 @@ namespace AutoDoc.Compiler {
 
     // nested_name -> ["::"] name { "::" name }
     private QualifiedName parseNestedName() {
-      check((int)EToken.QUALIFIER);
+      check("::");
 
       QualifiedName name = new QualifiedName();
       do {
         name.Names.Add(parseName());
-      } while (check((int)EToken.QUALIFIER));
+      } while (check("::"));
       return name;
     }
 
@@ -95,7 +95,7 @@ namespace AutoDoc.Compiler {
       TypeName name = new TypeName();
 
       // Destruktor
-      if(m_token == '~') {
+      if(m_text == "~") {
         next();
         name.Id = "~" + m_text;
         next();
@@ -112,19 +112,19 @@ namespace AutoDoc.Compiler {
           else
             name.Id += (char)m_token;
           next();
-        } while (m_token != '(');
+        } while (m_text != "(");
         return name;
       }
 
       // normal
-      assert((int)EToken.IDENTIFIER);
+      assert(EToken.IDENTIFIER);
       name.Id = m_text;
       next();
 
       // template
-      if (check('<')) {
+      if (check("<")) {
         name.TemplateTypes = parseTypeList();
-        assert('>');
+        assert(">");
         next();
       }
       
@@ -136,18 +136,18 @@ namespace AutoDoc.Compiler {
       List<Type> typeList = new List<Type>();
       do {
         typeList.Add(parseType());
-      } while (check(','));
+      } while (check(","));
       return typeList;
     }
 
     // paramList -> (param { "," param }) | EMPTY
     private List<Param> parseParamList() {
       var parameters = new List<Param>();
-      if (m_token == ')') return parameters;
+      if (m_text == ")") return parameters;
 
       do {
         parameters.Add(parseParam());
-      } while (check(','));
+      } while (check(","));
       return parameters;
     }
     
@@ -156,12 +156,12 @@ namespace AutoDoc.Compiler {
       Param param = new Param();
       param.Type = parseType();
 
-      if (m_token == (int)EToken.IDENTIFIER) {
+      if (m_token == EToken.IDENTIFIER) {
         param.Name = m_text;
         next();
       }
 
-      if (m_token == '=')
+      if (m_text == "=")
         param.Init = parseInitializer();
 
       return param;
@@ -178,13 +178,13 @@ namespace AutoDoc.Compiler {
         end = scanner.Position;
         next();
 
-        if (m_token == ',')
+        if (m_text == ",")
           break;
 
-        if (m_token == '(')
+        if (m_text == "(")
           brace++;
 
-        if (m_token == ')') {
+        if (m_text == ")") {
           if (brace == 0) break;
           if (brace > 0) brace--;
         }
@@ -196,36 +196,45 @@ namespace AutoDoc.Compiler {
 
     private void next() {
       do {
-        m_token = scanner.getToken();
-        m_text = scanner.Text;
-      } while (m_token == (int)EToken.COMMENT);
+        m_text = scanner.getToken();
+        m_token = scanner.TokenType;
+      } while (m_token == EToken.COMMENT || m_token == EToken.INVALID);
     }
 
     // throws exception if token was not correct and calls next()
-    private void assert(int a_token) {
+    private void assert(EToken a_token) {
       if (m_token != a_token)
-        throw new Exception("Exspected token: " + ToString(a_token) + ", got: " + ToString(m_token));
+        throw new Exception("Exspected token: " + a_token.ToString() + ", got: " + m_token.ToString());
     }
 
-    private string ToString(int a_token) {
-      if(a_token < 128) {
-        return "" + (char)a_token;
-      } else {
-        return ((EToken)a_token).ToString() + ": " + m_text;
-      }
+    // throws exception if text was not correct and calls next()
+    private void assert(string a_text) {
+      if (m_text != a_text)
+        throw new Exception("Exspected token: " + a_text + ", got: " + m_text);
     }
 
     // calls next() and returns true if token was correct
-    private bool check(int a_token, string a_text = "") {
-      if(m_token == a_token && (a_text == "" || a_text == m_text)) {
-        next();
-        return true;
-      }
-      return false;
+    private bool check(EToken a_token, string a_text = "") {
+      if (m_token != a_token)
+        return false;
+      if (a_text != "" && a_text != m_text)
+        return false;
+
+      next();
+      return true;
+    }
+
+    // calls next() and returns true if text was correct
+    private bool check(string a_text = "") {
+      if (a_text != m_text)
+        return false;
+
+      next();
+      return true;
     }
 
     private IScanner scanner;
-    private int m_token;
+    private EToken m_token;
     private string m_text;
   }
 }

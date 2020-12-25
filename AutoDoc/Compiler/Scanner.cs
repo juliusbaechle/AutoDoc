@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Linq;
 
 namespace AutoDoc.Compiler {
@@ -10,145 +9,153 @@ namespace AutoDoc.Compiler {
       Code = sourcecode + ' ';
     }
 
-    public string Text  { get; private set; }
+    public EToken TokenType  { get; private set; }
     public int Position { get; private set; } = 0;
     public string Code  { get; private set; }
 
-    public int getToken() {
+    public string getToken() {
       try {
-        Text = "";
+        TokenType = EToken.INVALID;
+        m_text = "";
 
         // Skip til next non whitespace char
-        while (isWhitespace(c))
-          c = nextChar();
+        while (isWhitespace(m_cc))
+          nextChar();
 
         // Colon ':'
-        if (c == ':') {
-          if ((c = nextChar()) == ':') {
-            c = nextChar();
-            return (int)EToken.QUALIFIER;
-          } else {
-            return ':';
-          }
+        if (m_cc == ':') {
+          TokenType = EToken.OPERATOR;
+          nextChar();
+          if (m_cc == ':')
+            nextChar();
+          return m_text;
         }
 
         // And '&'
-        if (c == '&') {
-          if ((c = nextChar()) == '&') {
-            c = nextChar();
-            return (int)EToken.RVALUE_REF;
-          } else {
-            return '&';
-          }
+        if (m_cc == '&') {
+          TokenType = EToken.OPERATOR;
+          nextChar();
+          if (m_cc == '&')
+            nextChar();
+          return m_text;
         }
 
         // Number Literal
         // TODO: Properly scan real literals
-        if (isNumber(c)) {
+        if (isNumber(m_cc)) {
           do {
-            Text += c;
-            c = nextChar();
-          } while (isNumber(c));
+            nextChar();
+          } while (isNumber(m_cc));
 
-          if (c != '.') {
-            return (int)EToken.INTEGER_LITERAL;
+          if (m_cc != '.') {
+            TokenType = EToken.INTEGER_LITERAL;
+            return m_text;
           } else {
-            do {
-              Text += c;
-              c = nextChar();
-            } while (isNumber(c) || "efl+-".Contains(c));
+            do {              
+              nextChar();
+            } while (isNumber(m_cc) || "efl+-".Contains(m_cc));
 
-            return (int)EToken.REAL_LITERAL;
+            TokenType = EToken.REAL_LITERAL;
+            return m_text;
           }
         }
 
         // String Literal
-        if (c == '"') {
+        if (m_cc == '"') {
           bool escaped = false;
-          c = nextRichChar(out escaped);
-          while (c != '"' || escaped) {
-            Text += c;
-            c = nextRichChar(out escaped);
-          }
-          c = nextChar();
-          return (int)EToken.STRING_LITERAL;
+
+          nextRichChar(out escaped);
+          while (m_cc != '"' || escaped)
+            nextRichChar(out escaped);
+          nextChar();
+
+          TokenType = EToken.STRING_LITERAL;
+          m_text = m_text.Remove(0, 1);
+          m_text = m_text.Remove(m_text.Length - 1, 1);
+          return m_text;
         }
 
         // Char Literal
-        if (c == '\'') {
+        if (m_cc == '\'') {
           bool escaped = false;
-          c = nextRichChar(out escaped);
-          while (c != '\'' || escaped) {
-            Text += c;
-            c = nextRichChar(out escaped);
-          }
-          c = nextChar();
-          return (int)EToken.CHAR_LITERAL;
+
+          nextRichChar(out escaped);
+          while (m_cc != '\'' || escaped)
+            nextRichChar(out escaped);
+          nextChar();
+
+          TokenType = EToken.CHAR_LITERAL;
+          m_text = m_text.Remove(0, 1);
+          m_text = m_text.Remove(m_text.Length - 1, 1);
+          return m_text;
         }
 
         // Comments
-        if (c == '/') {
-          c = nextChar();
+        if (m_cc == '/') {
+          nextChar();
 
           // Line comment
-          if (c == '/') {
-            while (c != '\n')
-              c = nextChar();
+          if (m_cc == '/') {
+            while (m_cc != '\n')
+              nextChar();
+            nextChar();
 
-            c = nextChar();
-            return (int)EToken.COMMENT;
+            TokenType = EToken.COMMENT;
+            return m_text; 
           }
 
           // Block comment
-          if (c == '*') {
+          if (m_cc == '*') {
             char lastC = ' ';
-            while(!(lastC == '*' && c == '/')) {
-              lastC = c;
-              c = nextChar();
+            while(!(lastC == '*' && m_cc == '/')) {
+              lastC = m_cc;
+              nextChar();
             }
+            nextChar();
 
-            c = nextChar();
-            return (int)EToken.COMMENT;
+            TokenType = EToken.COMMENT;
+            return m_text;
           }
 
-          return '/';
+          TokenType = EToken.OPERATOR;
+          return "/";
         }
 
         // Identifier / Keywords
-        if (isLetter(c) || c == '_') {
-          while (isLetter(c) || isNumber(c) || c == '_') {
-            Text += c;
-            c = nextChar();
-          }
+        if (isLetter(m_cc) || m_cc == '_') {
+          while (isLetter(m_cc) || isNumber(m_cc) || m_cc == '_')
+            nextChar();
 
-          return (int)Keywords.getType(Text);
+          TokenType = Keywords.getType(m_text);
+          return m_text;
         }
 
         // Default
-        char token = c;
-        c = nextChar();
-        return token;
+        char token = m_cc;
+        TokenType = EToken.OPERATOR;
+        nextChar();
+        return m_text;
       } catch (EndOfScanException ex) {
-        return (int)EToken.END_OF_SCAN;
+        TokenType = EToken.END_OF_SCAN;
+        return m_text;
       }      
     }
 
     // Called when not in String / Char-Literal
-    private char nextChar() {
+    private void nextChar() {
       if (Position >= Code.Length)
         throw new EndOfScanException();
 
-      char c = Code[Position++];
-      if (c == '\\')
-        Debug.WriteLine("unexpected token: " + c);
-      return c;
+      if (!isWhitespace(m_cc))
+        m_text += m_cc;
+      m_cc = Code[Position++];
     }
 
     // Called in String / Char-Literal; accepting escape chars
-    private char nextRichChar(out bool escaped) {
+    private void nextRichChar(out bool escaped) {
       if (Position >= Code.Length)
         throw new EndOfScanException();
-
+      
       char c = Code[Position++];
       escaped = false;
 
@@ -156,25 +163,25 @@ namespace AutoDoc.Compiler {
         escaped = true;
         c = Code[Position++];
 
-        if (c == 'a') return '\x07';  // audible bell
-        if (c == 'b') return '\x08';  // backspace
-        if (c == 'f') return '\x0c';  // form feed - new page
-        if (c == 'n') return '\x0a';  // line feed - new line
-        if (c == 'r') return '\x0d';  // carraige return
-        if (c == 't') return '\x09';  // horizontal tab
-        if (c == 'v') return '\x0b';  // vertical tab
+        if (c == 'a') c = '\x07';  // audible bell
+        if (c == 'b') c = '\x08';  // backspace
+        if (c == 'f') c = '\x0c';  // form feed - new page
+        if (c == 'n') c = '\x0a';  // line feed - new line
+        if (c == 'r') c = '\x0d';  // carraige return
+        if (c == 't') c = '\x09';  // horizontal tab
+        if (c == 'v') c = '\x0b';  // vertical tab
         
         // TODO: Accept numeric escape sequences
         if (isNumber(c) || c == 'x' || c == 'u' || c == 'U')
           throw new Exception("numeric escape sequences are not supported yet");
-
-        return c;
       }
 
-      return c;
+      m_text += m_cc;
+      m_cc = c;
     }
     
-    private char c = ' ';
+    private char m_cc = ' '; // Current Character
+    private string m_text = "";
 
     bool isWhitespace(char c) { return c < '!' || c > '~'; }
     bool isNumber(char c) { return c >= '0' && c <= '9'; }
