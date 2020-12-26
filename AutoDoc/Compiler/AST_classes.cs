@@ -11,7 +11,7 @@ namespace AutoDoc.Compiler {
   public class Param {
     public Type Type = new Type();
     public string Name = "";
-    public string Init = "";
+    public string Default = "";
   }
 
   public class Type {
@@ -52,6 +52,10 @@ namespace AutoDoc.Compiler {
         name += Names[i].ToString();
       }
       return name;
+    }
+
+    public string ElementName {
+      get{ return Names[Names.Count - 1].ToString(); }      
     }
 
     public List<TypeName> Names = new List<TypeName>();

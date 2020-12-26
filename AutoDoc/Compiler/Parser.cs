@@ -1,5 +1,4 @@
-﻿using AutoDoc.Compiler;
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace AutoDoc.Compiler {
@@ -9,12 +8,15 @@ namespace AutoDoc.Compiler {
       next();
     }
 
-    // method -> { keywords } [type] nested_name "(" parameter_list ")" [cv]
+    // method -> { keywords } [type] nested_name parameter_list [cv]
     public Method ParseMethod() {
+      if(m_token == EToken.KEYWORD_ACCESS) {
+        next();
+        next();
+      }
+
       Method method = new Method();
       method.Specifiers = parseSpecifier();
-
-      // Return type
       method.ReturnType = parseType();
 
       // Konstruktoren oder Operator-Umwandlungen haben keinen return type
@@ -25,13 +27,9 @@ namespace AutoDoc.Compiler {
       } else {
         method.QualifiedName = parseNestedName();
       }
-
-      // Parameter
-      assert("("); next();
+            
       method.Params = parseParamList();
-      assert(")"); next();
-
-      // const / noexcept / ...
+      
       if(m_token == EToken.KEYWORD_CV)
         method.Specifiers.Add(parseCV());
 
@@ -140,14 +138,18 @@ namespace AutoDoc.Compiler {
       return typeList;
     }
 
-    // paramList -> (param { "," param }) | EMPTY
+    // paramList -> "(" param { "," param } ")" | EMPTY
     private List<Param> parseParamList() {
-      var parameters = new List<Param>();
-      if (m_text == ")") return parameters;
+      assert("("); next();
+      if (m_text == ")")
+        return new List<Param>();
 
+      var parameters = new List<Param>();
       do {
         parameters.Add(parseParam());
       } while (check(","));
+
+      assert(")"); next();
       return parameters;
     }
     
@@ -162,20 +164,18 @@ namespace AutoDoc.Compiler {
       }
 
       if (m_text == "=")
-        param.Init = parseInitializer();
+        param.Default = parseInitializer();
 
       return param;
     }
     
-    // TODO: parseInitializer: remove this hack
+    // TODO: Remove this Hack (scanned text for intializer)
     private string parseInitializer() {
-      int start = scanner.Position;
-      int end = start;
+      scanner.ScannedText = "";
       next();
 
       int brace = 0;
       while (true) {
-        end = scanner.Position;
         next();
 
         if (m_text == ",")
@@ -189,9 +189,9 @@ namespace AutoDoc.Compiler {
           if (brace > 0) brace--;
         }
       }
-    
-      string init = scanner.Code.Substring(start - 1, end - start);
-      return init.Trim();
+
+      string scannedText = scanner.ScannedText.Trim();
+      return scannedText.Substring(0, scannedText.LastIndexOf(m_text));
     }
 
     private void next() {

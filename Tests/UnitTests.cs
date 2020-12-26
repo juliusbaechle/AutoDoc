@@ -116,10 +116,10 @@ public class Tests {
     Assert.AreEqual(2, method.Params.Count);
     Assert.AreEqual("int"   , method.Params[0].Type.ToString());
     Assert.AreEqual("a_iInt", method.Params[0].Name);
-    Assert.AreEqual("5"     , method.Params[0].Init);
+    Assert.AreEqual("5"     , method.Params[0].Default);
     Assert.AreEqual("QString"      , method.Params[1].Type.ToString());
     Assert.AreEqual("a_strText"    , method.Params[1].Name);
-    Assert.AreEqual("new QString()", method.Params[1].Init);
+    Assert.AreEqual("new QString()", method.Params[1].Default);
   }
 
   [TestMethod]
