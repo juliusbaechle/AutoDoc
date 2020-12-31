@@ -23,34 +23,33 @@ namespace AutoDoc {
       return m_currentViews.Find(view => view.HasAggregateFocus);
     }
 
-    public string GetHeaderContent(string filename) {
+    public string GetHeaderContent(string filePath) {
       IWpfTextView headerView = null;
 
       try {
-        headerView = searchView(filename);
+        headerView = searchView(filePath);
         if (headerView == null)
-          headerView = openView(filename);
+          headerView = openView(filePath);
         return headerView.TextBuffer.CurrentSnapshot.GetText();
       } catch (Exception) {
-        throw new Exception("Not able to open header file: " + filename + "    Solution: .h and .cpp must have the same file name");
+        throw new Exception("Not able to open header file " + filePath + ".h: .h and .cpp must have the same file name");
       }
     }
 
-    private IWpfTextView openView(string filename) {
-      ThreadHelper.ThrowIfNotOnUIThread();
-      VsShellUtilities.OpenDocument(ServiceProvider.GlobalProvider, filename + ".h");
-      IWpfTextView view = m_currentViews[m_currentViews.Count - 1];
-      VsShellUtilities.OpenDocument(ServiceProvider.GlobalProvider, filename + ".cpp");
-      return view;
-    }
-
-    private IWpfTextView searchView(string filename) {
+    private IWpfTextView searchView(string filePath) {
       foreach (IWpfTextView view in m_currentViews) {
         string path = view.TextBuffer.Properties.GetProperty<ITextDocument>(typeof(ITextDocument)).FilePath;
-        if (path.EndsWith(filename + ".h"))
-          return view;
+        if (path == filePath + ".h") return view;
       }
       return null;
+    }
+
+    private IWpfTextView openView(string filePath) {
+      ThreadHelper.ThrowIfNotOnUIThread();
+      VsShellUtilities.OpenDocument(ServiceProvider.GlobalProvider, filePath + ".h");
+      IWpfTextView view = m_currentViews[m_currentViews.Count - 1];
+      VsShellUtilities.OpenDocument(ServiceProvider.GlobalProvider, filePath + ".cpp");
+      return view;
     }
 
     public void TextViewCreated(IWpfTextView textView) {

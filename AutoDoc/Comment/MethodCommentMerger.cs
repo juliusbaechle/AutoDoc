@@ -10,15 +10,14 @@ namespace AutoDoc.Comment {
     }
 
     public MethodComment Merge() {
-      m_newComment.Whitespace = m_oldComment.Whitespace;
-      createSignature();
-      mergeSummary();
-      mergeParams();
-      mergeReturn();
+      CreateSignature();
+      MergeSummary();
+      MergeParams();
+      MergeReturn();
       return m_newComment;
     }
 
-    private void createSignature() {
+    private void CreateSignature() {
       m_newComment.Signature = m_method.QualifiedName.ToString();
 
       for (int i = 0; i < m_method.Specifiers.Count; i++) {
@@ -27,7 +26,7 @@ namespace AutoDoc.Comment {
       }
     }
 
-    private void mergeSummary() {
+    private void MergeSummary() {
       if(m_oldComment.Summary != "") {
         m_newComment.Summary = m_oldComment.Summary;
         return;
@@ -46,28 +45,47 @@ namespace AutoDoc.Comment {
         m_newComment.Summary = "Destruktor";
     }
 
-    private void mergeParams() {
-      List<string> newKeys = new List<string>();
+    private void MergeParams() {
+      AddCurrentParams();
+      AddChangedParams();
+    }
 
+    private void AddCurrentParams() {
       for (int i = 0; i < m_method.Params.Count; i++) {
-        string key = m_method.Params[i].Type.ToString() + " " + m_method.Params[i].Name;
-
         string value = "";
-        foreach (Pair<string, string> oldPair in m_oldComment.Params)
-          if (oldPair.Key == key)
-            value = oldPair.Value;
+        foreach (Pair<CommentParam, string> oldPair in m_oldComment.Params) {
+          if (m_method.Params[i].Type.ToString() != oldPair.Key.Type) continue;
+          if (m_method.Params[i].Name != oldPair.Key.Name) continue;
+          value = oldPair.Value;
+        }
 
-        m_newComment.Params.Add(new Pair<string, string>(key, value));
-        newKeys.Add(key);
-      }
-      
-      foreach(Pair<string, string> oldPair in m_oldComment.Params) {
-        if (!newKeys.Contains(oldPair.Key))
-          m_newComment.Changed.Add(oldPair);
+        var param = new CommentParam();
+        param.Type = m_method.Params[i].Type.ToString();
+        param.Name = m_method.Params[i].Name;
+        param.Default = m_method.Params[i].Default;
+
+        var pair = new Pair<CommentParam, string>(param, value);
+        m_newComment.Params.Add(pair);
       }
     }
 
-    private void mergeReturn() {
+    private void AddChangedParams() {
+      foreach (Pair<CommentParam, string> oldPair in m_oldComment.Params) {
+        bool contained = false;
+        foreach (Pair<CommentParam, string> newPair in m_newComment.Params) {
+          if (newPair.Key.Type != oldPair.Key.Type) continue;
+          if (newPair.Key.Name != oldPair.Key.Name) continue;
+          contained = true;
+        }
+
+        if (!contained) {
+          var pair = new Pair<string, string>(oldPair.Key.ToString(), oldPair.Value);
+          m_newComment.Changed.Add(pair);
+        }
+      }
+    }
+
+    private void MergeReturn() {
       string newKey = m_method.ReturnType.ToString();
       string oldKey = m_oldComment.Return.Key;
 

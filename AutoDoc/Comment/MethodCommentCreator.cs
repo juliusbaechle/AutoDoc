@@ -24,6 +24,8 @@ namespace AutoDoc.Comment {
     public string ParameterLine2 = "          ";
     public string ReturnLine     = "Return  : ";
     public string ChangedLine    = "CHANGED : ";
+
+    public int Align = 10;
   }
 
   public class MethodCommentCreator {
@@ -31,12 +33,10 @@ namespace AutoDoc.Comment {
       m_config = config;
     }
 
-    public string Create(MethodComment comment) {
-      int align = m_config.SignatureLine.Length;
-
-      Add(m_config.SignatureLine + comment.Signature, align);
+    public string Create(MethodComment comment, int align) {
+      Add(m_config.SignatureLine + comment.Signature, m_config.Align);
       Add("");
-      Add(m_config.SummaryLine + comment.Summary, align);
+      Add(m_config.SummaryLine + comment.Summary, m_config.Align);
 
       if(comment.Params.Count > 0) {
         Add("");
@@ -45,7 +45,7 @@ namespace AutoDoc.Comment {
 
       if(comment.Return.Key != "void" && comment.Return.Key != "") {
         Add("");
-        Add(m_config.ReturnLine + comment.Return.Key + " - " + comment.Return.Value, align);
+        Add(m_config.ReturnLine + comment.Return.Key + " - " + comment.Return.Value, m_config.Align);
       }
 
       if(comment.Changed.Count > 0) {
@@ -54,7 +54,7 @@ namespace AutoDoc.Comment {
           Add(m_config.ChangedLine + comment.Changed[i].Key + " - " + comment.Changed[i].Value);
       }
 
-      return Decorate(comment.Whitespace);
+      return Decorate(align);
     }
 
     private void CreateParamsSection(MethodComment comment) {
@@ -62,11 +62,10 @@ namespace AutoDoc.Comment {
         string line = (i == 0)
           ? m_config.ParameterLine1
           : m_config.ParameterLine2;
-
-        line += comment.Params[i].Key + " - ";
-        int align = comment.Params[i].Key.Length;
-        line += comment.Params[i].Value;
-        Add(line, align);
+        
+        line += comment.Params[i].Key.ToString();
+        line += " - " + comment.Params[i].Value;
+        Add(line, m_config.Align + 3);
       }
     }
 

@@ -9,7 +9,6 @@ namespace AutoDoc.Comment {
 
     public MethodComment Parse(List<string> commentBlock) {
       try {
-        m_comment.Whitespace = commentBlock[0].IndexOf('/');
         List<string> block = TrimLines(commentBlock);
 
         foreach (string line in block)
@@ -17,7 +16,7 @@ namespace AutoDoc.Comment {
         AssignLast();
 
         return m_comment;
-      } catch (Exception e) {
+      } catch (Exception) {
         return new MethodComment();
       }
     }
@@ -52,7 +51,7 @@ namespace AutoDoc.Comment {
         }
       }
 
-      if (line.Contains("-")) {
+      if (line.Contains("-") && m_section != ESection.Summary) {
         AssignLast();
         m_key = line.Remove(line.IndexOf('-')).Trim(' ');
         line = line.Remove(0, line.IndexOf('-') + 1).Trim(' ');
@@ -75,7 +74,7 @@ namespace AutoDoc.Comment {
       if (m_section == ESection.Summary)
         m_comment.Summary = m_strComment;
       if (m_section == ESection.Params)
-        m_comment.Params.Add(new Pair<string, string>(m_key, m_strComment));
+        m_comment.Params.Add(new Pair<CommentParam, string>(new CommentParam(m_key), m_strComment));
       if (m_section == ESection.Return)
         m_comment.Return = new Pair<string, string>(m_key, m_strComment);
 

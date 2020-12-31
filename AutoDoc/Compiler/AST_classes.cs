@@ -4,11 +4,18 @@ namespace AutoDoc.Compiler {
   public class Method {
     public List<string> Specifiers = new List<string>();
     public Type ReturnType = new Type();
-    public QualifiedName QualifiedName = new QualifiedName();
+    public NestedName QualifiedName = new NestedName();
     public List<Param> Params = new List<Param>();
   }
 
   public class Param {
+    public override string ToString() {
+      string str = Type.ToString() + Name;
+      if (Default != "")
+        str += " = " + Default;
+      return str;
+    }
+
     public Type Type = new Type();
     public string Name = "";
     public string Default = "";
@@ -25,7 +32,7 @@ namespace AutoDoc.Compiler {
     }
 
     public string KeywordCV = "";
-    public QualifiedName Name = new QualifiedName();
+    public NestedName Name = new NestedName();
     public PtrSpec PtrSpec = new PtrSpec();
   }
 
@@ -44,7 +51,7 @@ namespace AutoDoc.Compiler {
     public PtrSpec RecPtrSpec = null;
   }
 
-  public class QualifiedName {
+  public class NestedName {
     public override string ToString() {
       string name = "";
       for (int i = 0; i < Names.Count; i++) {

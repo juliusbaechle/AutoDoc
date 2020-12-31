@@ -8,9 +8,6 @@ using System.Diagnostics;
 using Microsoft.VisualStudio.Text.Editor;
 
 namespace AutoDoc {
-  // TODO: Calculate Method Alignment
-  // TODO: Include default values
-
   class AutoDoc {
     public static OpenViewsListener m_openViewsListener;
     public static MethodConfig m_config = new MethodConfig();
@@ -21,14 +18,16 @@ namespace AutoDoc {
         List<ITextSnapshotLine> lines = new List<ITextSnapshotLine>(view.TextSnapshot.Lines);
         int activeLine = view.Selection.ActivePoint.Position.GetContainingLine().LineNumber; // 0-based !
         List<string> commentLines = GetCommentLines(lines, activeLine);
+        string filePath = view.TextBuffer.Properties.GetProperty<ITextDocument>(typeof(ITextDocument)).FilePath.Replace(".cpp", "");
 
-        var cppMethod = GetCppMethod(view);
-        var headerMethod = GetHeaderMethod(GetFilename(view), cppMethod);
+        int align = 0;
+        var cppMethod = GetCppMethod(view, out align);        
+        var headerMethod = GetHeaderMethod(filePath, cppMethod);
         Method method = Merge(headerMethod, cppMethod);
 
         MethodComment oldComment = new MethodCommentParser(m_config).Parse(commentLines);
         MethodComment newComment = new MethodCommentMerger(method, oldComment).Merge();
-        string comment = new MethodCommentCreator(m_config).Create(newComment);
+        string comment = new MethodCommentCreator(m_config).Create(newComment, align);
 
         ReplaceLines(view, activeLine - commentLines.Count, commentLines.Count, comment);
       } catch(Exception e) {
@@ -50,10 +49,10 @@ namespace AutoDoc {
       return commentLines;
     }
 
-    private static Method GetCppMethod(IWpfTextView view) {
+    private static Method GetCppMethod(IWpfTextView view, out int align) {
       string content = view.TextBuffer.CurrentSnapshot.GetText();
       int start = view.Selection.ActivePoint.Position;
-      string methodDeclaration = GetMethodDeclaration(content, start);
+      string methodDeclaration = GetMethodDeclaration(content, start, out align);
 
       var scanner = new Scanner(methodDeclaration);
       var parser = new Parser(scanner);
@@ -70,22 +69,26 @@ namespace AutoDoc {
           string access = "";
           string text = "";
           bool slot = false;
-
-          while (text != cppMethod.QualifiedName.ElementName) {
+          
+          while (text != cppMethod.QualifiedName.ElementName.Replace("~", "")) {
             text = scanner.getToken();
 
-            if (scanner.TokenType == EToken.KEYWORD_ACCESS)
+            if (scanner.TokenType == EToken.KEYWORD_ACCESS) {
               access = text;
+              slot = false;
+            }
             if (scanner.TokenType == EToken.KEYWORD_SLOT)
               slot = true;
+            if (scanner.TokenType == EToken.END_OF_SCAN)
+              throw new Exception("Missing declaration in header");
           }
 
-          string declaration = GetMethodDeclaration(header, scanner.Position);
+          int align;
+          string declaration = GetMethodDeclaration(header, scanner.Position, out align);
           headerMethod = new Parser(new Scanner(declaration)).ParseMethod();
           if (!IsMatch(headerMethod, cppMethod)) continue;
-
-          headerMethod.Specifiers.Insert(0, access);
-          if(slot) headerMethod.Specifiers.Insert(0, "slot");
+          
+          headerMethod.Specifiers.Insert(0, access + (slot ? " slot" : ""));          
           return headerMethod;          
         }     
       } catch (Exception ex) {
@@ -95,6 +98,8 @@ namespace AutoDoc {
     }
 
     private static bool IsMatch(Method headerMethod, Method cppMethod) {
+      if (headerMethod.QualifiedName.ElementName != cppMethod.QualifiedName.ElementName)
+        return false;
       if (headerMethod.Params.Count != cppMethod.Params.Count)
         return false;
       for (int i = 0; i < headerMethod.Params.Count; i++)
@@ -120,18 +125,14 @@ namespace AutoDoc {
       return cppMethod;
     }
 
-    private static string GetMethodDeclaration(string content, int start) {      
+    private static string GetMethodDeclaration(string content, int start, out int align) {      
       int end = start;
       while (end < content.Length && content[end] != '{' && content[end] != ';') end++;
+      
+      while (content[start - 1] != '\n' && start > 0) start--;
 
-
-      string delimiters = "};#-";
-      while (!delimiters.Contains(content[start - 1]) && start > 0) start--;
-
-      // Falls auf Präprozessor-Direktive gestoßen: Gehe bis zum Zeilenumbruch vor    
-      if (start >= 1 && content[start - 1] == '#')
-        while (content[start] != '\n') start++;  
-
+      align = 0;
+      while (content[start + align] == ' ') align++;
 
       string declaration = "";
       for(int i = start; i < end; i++)
@@ -152,11 +153,8 @@ namespace AutoDoc {
       }
     }
 
-    private static string GetFilename(IWpfTextView view) {
-      string cppPath = view.TextBuffer.Properties.GetProperty<ITextDocument>(typeof(ITextDocument)).FilePath;
-      return cppPath.Substring(cppPath.LastIndexOf('\\') + 1).Replace(".cpp", "");
-    }
-
     private static bool isWhitespace(char c) { return c < '!' || c > '~'; }
+    private static bool isNumber(char c) { return c >= '0' && c <= '9'; }
+    private static bool isLetter(char c) { return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z'; }
   }
 }

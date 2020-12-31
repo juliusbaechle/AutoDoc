@@ -7,38 +7,6 @@ using System.Diagnostics;
 [TestClass]
 public class Tests {
   [TestMethod]
-  public void CreateComment() {
-    MethodComment comment = new MethodComment();
-    comment.Whitespace = 2;
-    comment.Signature = "Routine::getVariable [virtual]";
-    comment.Summary = "Gibt Variable der Routine zurück\r\nFalls nicht vorhanden wird ungültige QVariant zurückgegeben";
-    comment.Params.Add(new Pair<string, string>("const QString& a_strVariableName", "Name der gesuchten Variablen"));
-    comment.Return = new Pair<string, string>("QVariant", "Variablenwert");
-
-    string strComment = new MethodCommentCreator(new MethodConfig()).Create(comment);
-    Debug.WriteLine(strComment);
-
-    string strExspectedComment =
-      "  ///-----------------------------------------------------------------------------------\r\n" +
-      "  /// Function: Routine::getVariable [virtual]\r\n" +
-      "  /// \r\n" +
-      "  /// Summary : Gibt Variable der Routine zurück\r\n" +
-      "  ///           Falls nicht vorhanden wird ungültige QVariant zurückgegeben\r\n" +
-      "  /// \r\n" +
-      "  /// Params  : const QString& a_strVariableName - Name der gesuchten Variablen\r\n" +
-      "  /// \r\n" +
-      "  /// Return  : QVariant - Variablenwert\r\n" +
-      "  ///-----------------------------------------------------------------------------------\r\n";
-
-    Assert.AreEqual(strExspectedComment, strComment);
-  }
-
-  [TestMethod]
-  public void MergeMethod() {
-    //TODO: Test MethodCommentMerger
-  }
-
-  [TestMethod]
   public void Scan() {
     string sourceCode =
       " class Menu::dgPage { } " +
@@ -145,12 +113,51 @@ public class Tests {
     Assert.AreEqual("This is a summary\r\ngoing over two lines", comment.Summary.Trim());
 
     Assert.AreEqual(2, comment.Params.Count);
-    Assert.AreEqual("This: It's a string!", comment.Params.Find(pair => pair.Key == "QString a_string").Value);
-    Assert.AreEqual("This is a variable declaration" + config.NewLine + "going over two lines", comment.Params.Find(pair => pair.Key == "int a_count").Value);
+    Assert.AreEqual("QString a_string", comment.Params[0].Key.ToString());
+    Assert.AreEqual("This: It's a string!", comment.Params[0].Value);
+    Assert.AreEqual("int a_count", comment.Params[1].Key.ToString());
+    Assert.AreEqual("This is a variable declaration\r\ngoing over two lines", comment.Params[1].Value);
 
     Assert.AreEqual("bool", comment.Return.Key);
     Assert.AreEqual("Parsing succeeded !", comment.Return.Value);
+  }
 
-    Assert.AreEqual(2, comment.Whitespace);
+  [TestMethod]
+  public void CreateComment() {
+    MethodComment comment = new MethodComment();
+    comment.Signature = "Routine::getVariable   [virtual]";
+    comment.Summary = "Gibt Variable der Routine zurück\r\nFalls nicht vorhanden wird ungültige QVariant zurückgegeben";
+    var param = new CommentParam("const QString& a_strVariableName = \"Hello World !\"");
+    comment.Params.Add(new Pair<CommentParam, string>(param, "\r\nName der gesuchten Variablen"));
+    comment.Return = new Pair<string, string>("QVariant", "Variablenwert");
+
+    string strComment = new MethodCommentCreator(new MethodConfig()).Create(comment, 2);
+    Debug.WriteLine(strComment);
+
+    string strExspectedComment =
+      "  ///-----------------------------------------------------------------------------------\r\n" +
+      "  /// Function: Routine::getVariable   [virtual]\r\n" +
+      "  /// \r\n" +
+      "  /// Summary : Gibt Variable der Routine zurück\r\n" +
+      "  ///           Falls nicht vorhanden wird ungültige QVariant zurückgegeben\r\n" +
+      "  /// \r\n" +
+      "  /// Params  : const QString& a_strVariableName = \"Hello World !\" - \r\n" +
+      "  ///              Name der gesuchten Variablen\r\n" +
+      "  /// \r\n" +
+      "  /// Return  : QVariant - Variablenwert\r\n" +
+      "  ///-----------------------------------------------------------------------------------\r\n";
+
+    Assert.AreEqual(strExspectedComment, strComment);
+  }
+
+  [TestMethod]
+  public void CreateCommentParam() {
+    string key = "const QString& a_strVariableName = \"Hello World !\"";
+
+    var param = new CommentParam(key);
+
+    Assert.AreEqual("const QString&", param.Type);
+    Assert.AreEqual("a_strVariableName", param.Name);
+    Assert.AreEqual("\"Hello World !\"", param.Default);
   }
 }

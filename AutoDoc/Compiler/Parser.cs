@@ -29,10 +29,7 @@ namespace AutoDoc.Compiler {
       }
             
       method.Params = parseParamList();
-      
-      if(m_token == EToken.KEYWORD_CV)
-        method.Specifiers.Add(parseCV());
-
+      method.Specifiers.AddRange(parseSpecifiersAfterParams());
       return method;
     }
 
@@ -40,6 +37,18 @@ namespace AutoDoc.Compiler {
       var specifiers = new List<string>();
       while(m_token == EToken.KEYWORD_SPECIFIER) {
         specifiers.Add(m_text);
+        next();
+      }
+      return specifiers;
+    }
+
+    private List<string> parseSpecifiersAfterParams() {
+      var specifiers = new List<string>();
+      while (m_token != EToken.END_OF_SCAN) {
+        if (m_token == EToken.KEYWORD_CV)
+          specifiers.Add(m_text);
+        if (m_token == EToken.KEYWORD_SPECIFIER)
+          specifiers.Add(m_text);
         next();
       }
       return specifiers;
@@ -77,17 +86,17 @@ namespace AutoDoc.Compiler {
     }
 
     // nested_name -> ["::"] name { "::" name }
-    private QualifiedName parseNestedName() {
+    private NestedName parseNestedName() {
       check("::");
 
-      QualifiedName name = new QualifiedName();
+      NestedName name = new NestedName();
       do {
         name.Names.Add(parseName());
       } while (check("::"));
       return name;
     }
 
-    // name -> id ["<" typeList ">"]
+    // name -> id ["<" typeList ">"] | "~"id | "operator (id|op)"
     // TODO: Support std::function
     private TypeName parseName() {
       TypeName name = new TypeName();
@@ -138,7 +147,7 @@ namespace AutoDoc.Compiler {
       return typeList;
     }
 
-    // paramList -> "(" param { "," param } ")" | EMPTY
+    // param_list -> "(" param { "," param } ")" | EMPTY
     private List<Param> parseParamList() {
       assert("("); next();
       if (m_text == ")")
