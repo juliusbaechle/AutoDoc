@@ -5,6 +5,14 @@ namespace AutoDoc.Comment {
   public class MethodCommentParser {
     public MethodCommentParser(MethodConfig config) {
       m_config = config;
+
+      m_sectionDelimiters = new Dictionary<string, ESection>() {
+        { m_config.Signature , ESection.Signature },
+        { m_config.Summary   , ESection.Summary   },
+        { m_config.Parameter1, ESection.Params    },
+        { m_config.Return    , ESection.Return    },
+        { m_config.Changed   , ESection.Changed   }
+      };
     }
 
     public MethodComment Parse(List<string> commentBlock) {
@@ -87,13 +95,7 @@ namespace AutoDoc.Comment {
 
     private enum ESection { Invalid, Signature, Summary, Params, Return, Changed }
     private ESection m_section = ESection.Invalid;
-    private Dictionary<string, ESection> m_sectionDelimiters = new Dictionary<string, ESection>() {
-      { "Function", ESection.Signature },
-      { "Summary", ESection.Summary },
-      { "Params", ESection.Params },
-      { "Return", ESection.Return },
-      { "CHANGED", ESection.Changed }
-    };
+    private Dictionary<string, ESection> m_sectionDelimiters = null;
 
     private string m_strComment = "";
     private string m_key = "";

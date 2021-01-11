@@ -56,6 +56,7 @@
   <ItemGroup>
     <Compile Include="AutoDoc.cs" />
     <Compile Include="Comment\MethodCommentMerger.cs" />
+    <Compile Include="Comment\MethodConfig.cs" />
     <Compile Include="Compiler\Keywords.cs" />
     <Compile Include="Compiler\Token.cs" />
     <Compile Include="Plugin\CreateTextCmd.cs" />

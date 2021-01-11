@@ -6,6 +6,21 @@ using System.Diagnostics;
 
 [TestClass]
 public class Tests {
+  private static readonly MethodConfig m_testConfig  = new MethodConfig {
+    UpperLimiter = "///-----------------------------------------------------------------------------------",
+    EmptyLine    = "///",
+    LowerLimiter = "///-----------------------------------------------------------------------------------",
+    NewLine      = "\r\n",     
+    Signature  = "Function",
+    Summary    = "Summary",
+    Changed    = "CHANGED",     
+    Parameter1 = "Params",
+    Parameter2 = "",
+    Return     = "Return",    
+    AlignColon = 8,
+    AlignText  = 10
+  };
+
   [TestMethod]
   public void Scan() {
     string sourceCode =
@@ -105,9 +120,8 @@ public class Tests {
       "  /// \r\n" +
       "  /// Return  : bool - Parsing succeeded ! \r\n" +
       "  ///----------------------------------------------------------------------------------- \r\n";
-
-    var config = new MethodConfig();
-    var commentParser = new MethodCommentParser(config);
+    
+    var commentParser = new MethodCommentParser(m_testConfig);
     MethodComment comment = commentParser.Parse(new List<string>(commentBlock.Split('\n')));
 
     Assert.AreEqual("This is a summary\r\ngoing over two lines", comment.Summary.Trim());
@@ -131,7 +145,7 @@ public class Tests {
     comment.Params.Add(new Pair<CommentParam, string>(param, "\r\nName der gesuchten Variablen"));
     comment.Return = new Pair<string, string>("QVariant", "Variablenwert");
 
-    string strComment = new MethodCommentCreator(new MethodConfig()).Create(comment, 2);
+    string strComment = new MethodCommentCreator(m_testConfig).Create(comment, 2);
     Debug.WriteLine(strComment);
 
     string strExspectedComment =

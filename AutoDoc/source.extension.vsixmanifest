@@ -1,9 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="AutoDoc.632f4f98-4a1e-4a73-90e9-500522258412" Version="1.6" Language="en-US" Publisher="Julius Bächle" />
+        <Identity Id="AutoDoc.632f4f98-4a1e-4a73-90e9-500522258412" Version="1.9" Language="en-US" Publisher="Julius Bächle" />
         <DisplayName>AutoDoc</DisplayName>
-        <Description xml:space="preserve">Automatisches Erstellen und Aktualisieren von Methoden - Kommentaren</Description>
+        <Description xml:space="preserve">Automatisches Erstellen und Aktualisieren von Methoden-Kommentaren</Description>
         <Icon>autodoc_icon.png</Icon>
         <PreviewImage>preview.png</PreviewImage>
     </Metadata>
