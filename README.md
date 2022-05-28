@@ -1,6 +1,7 @@
 # AutoDoc
 <img src="AutoDoc_Kommentar.png" alt="AutoDoc-Kommentar">
 
-Während der Bachelorarbeit als Mitglied des ACS-Teams erarbeitet, um den Aufwand zum Erstellen von Doxygen-Kommentaren zu reduzieren. 
-Das Plugin zur Entwicklungsumgebung "Visual Studio" parst automatisch Methodensignaturen aus Header- und Source-Datei und generiert daraus 
-den automatisch generierbaren Teil der Kommentare. Dabei werden alte Kommentare beibehalten und vor dem Entfernen als "CHANGED" markiert.
+While on vacation during my 2020 bachelor thesis, I developed a tool to reduce the effort of creating comment blocks for Doxygen.
+It was used not only by me, but by the whole ACS team in the WMF coffee machine software development department.
+The plugin for the Visual Studio IDE parses the method signatures in the header and source files and generates the part of the 
+of the comment that can be generated automatically. Previous comments are retained and marked as "CHANGED" before being removed.
